@@ -4,11 +4,11 @@ import { createLead } from "../../../packages/application/src/commands/lead/crea
 import { assignLeadToSalesPartner } from "../../../packages/application/src/commands/lead/assign-lead-to-sales-partner";
 import { getOwnLeadPipeline } from "../../../packages/application/src/queries/sales-partner/get-own-lead-pipeline";
 
-export function startServer() {
+export function startServer(persistenceMode: "memory" | "file" = "memory") {
   const app = express();
   app.use(express.json());
 
-  const ctx = createApplicationContext("memory");
+  const ctx = createApplicationContext(persistenceMode);
 
   // --- simple request validation ---
   function requireFields(fields: string[]) {
@@ -60,7 +60,9 @@ export function startServer() {
   });
 
   app.listen(3000, () => {
-    console.log("Local API running on http://localhost:3000");
+    console.log(
+      `Local API running on http://localhost:3000 (persistence: ${persistenceMode})`
+    );
   });
 }
 
