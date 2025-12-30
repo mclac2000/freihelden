@@ -19,6 +19,18 @@ export function startServer() {
     res.json({ status: "ok" });
   });
 
+  app.get("/api/provisions/all", (_req, res) => {
+    res.json([]);
+  });
+
+  app.get("/api/search", (_req, res) => {
+    res.json([]);
+  });
+
+  app.get("/api/communication", (_req, res) => {
+    res.json([]);
+  });
+
   const port = 3000;
   app.listen(port, () => {
     console.log(`MINIMAL API running on http://localhost:${port}`);
