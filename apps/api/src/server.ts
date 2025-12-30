@@ -18,6 +18,10 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
+app.get("/api/provisions/mine", (_req, res) => {
+  res.json([]);
+});
+
 app.get("/api/provisions/all", (_req, res) => {
   res.json([]);
 });
