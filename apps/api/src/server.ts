@@ -30,6 +30,7 @@ import * as path from "path";
 export function startServer(persistenceMode: "memory" | "file" = "memory") {
   const app = express();
 
+  // 🚨 CORS MUSS ALS ALLERERSTES
   app.use(
     cors({
       origin: "http://localhost:5173",
@@ -38,11 +39,14 @@ export function startServer(persistenceMode: "memory" | "file" = "memory") {
         "Content-Type",
         "x-actor-id",
         "x-actor-role"
-      ],
-      credentials: false
+      ]
     })
   );
 
+  // Optional, aber sauber:
+  app.options("*", cors());
+
+  // Danach ERST:
   app.use(express.json());
 
   // Health Check
