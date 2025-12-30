@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { getAllProvisionClaims, ProvisionClaimView } from "../api";
+import { ErrorMessage } from "../components/ErrorMessage";
 
 // Hilfsfunktion (UI-only, keine Seiteneffekte)
 function isReadyForPayout(claim: ProvisionClaimView): boolean {
@@ -51,11 +52,11 @@ export function Dashboard() {
   }, [claims]);
 
   if (loading) {
-    return <div>Lade Daten...</div>;
+    return <div style={{ padding: "2rem", textAlign: "center" }}>Lade Daten...</div>;
   }
 
   if (error) {
-    return <div style={{ color: "red" }}>Fehler: {error}</div>;
+    return <ErrorMessage message={error} />;
   }
 
   const statusCounts = claims.reduce((acc, c) => {

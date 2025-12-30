@@ -2,6 +2,7 @@ import { useEffect, useState, useMemo } from "react";
 import { getAllProvisionClaims, approveProvisionClaim, triggerProvisionPayout, ProvisionClaimView } from "../api";
 import { DEV_AUTH } from "../auth";
 import { ProvisionAudit } from "../components/ProvisionAudit";
+import { ErrorMessage } from "../components/ErrorMessage";
 
 // Hilfsfunktionen (UI-only, keine Seiteneffekte)
 function isReadyForPayout(claim: ProvisionClaimView): boolean {
@@ -71,6 +72,10 @@ export function Provisions() {
   // Audit-Ansicht State
   const [openAuditFor, setOpenAuditFor] = useState<string | null>(null);
 
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 15;
+
   const loadClaims = () => {
     getAllProvisionClaims()
       .then(setClaims)
@@ -82,16 +87,22 @@ export function Provisions() {
     loadClaims();
   }, []);
 
+  const [approvingFor, setApprovingFor] = useState<string | null>(null);
+  const [payoutFor, setPayoutFor] = useState<string | null>(null);
+
   const handleApprove = async (claimId: string) => {
     if (!confirm("Provision wirklich bestätigen?")) {
       return;
     }
 
+    setApprovingFor(claimId);
     try {
       await approveProvisionClaim(claimId);
       loadClaims();
     } catch (err: any) {
       alert(`Fehler: ${err.message}`);
+    } finally {
+      setApprovingFor(null);
     }
   };
 
@@ -100,11 +111,14 @@ export function Provisions() {
       return;
     }
 
+    setPayoutFor(claimId);
     try {
       await triggerProvisionPayout(claimId);
       loadClaims();
     } catch (err: any) {
       alert(`Fehler: ${err.message}`);
+    } finally {
+      setPayoutFor(null);
     }
   };
 
@@ -149,12 +163,23 @@ export function Provisions() {
     return filtered;
   }, [claims, filterStatus, filterSource, filterPaymentStatus, filterReadyForPayout, sortBy, sortDirection]);
 
+  // Pagination
+  const totalPages = Math.ceil(filteredAndSortedClaims.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const paginatedClaims = filteredAndSortedClaims.slice(startIndex, endIndex);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterStatus, filterSource, filterPaymentStatus, filterReadyForPayout]);
+
   if (loading) {
-    return <div>Lade Daten...</div>;
+    return <div style={{ padding: "2rem", textAlign: "center" }}>Lade Daten...</div>;
   }
 
   if (error) {
-    return <div style={{ color: "red" }}>Fehler: {error}</div>;
+    return <ErrorMessage message={error} />;
   }
 
   const uniqueStatuses = Array.from(new Set(claims.map((c) => c.status)));
@@ -162,7 +187,7 @@ export function Provisions() {
 
   return (
     <div>
-      <h1>Provision Claims</h1>
+      <h2>Provision Claims</h2>
 
       {/* Filter */}
       <div style={{
@@ -270,10 +295,15 @@ export function Provisions() {
 
       <div style={{ marginBottom: "1rem", fontSize: "0.9rem", color: "#666" }}>
         {filteredAndSortedClaims.length} von {claims.length} Claims
+        {filteredAndSortedClaims.length > pageSize && (
+          <span> • Seite {currentPage} von {totalPages}</span>
+        )}
       </div>
 
       {filteredAndSortedClaims.length === 0 ? (
-        <div>Keine Claims vorhanden.</div>
+        <div style={{ padding: "2rem", textAlign: "center", color: "#666", fontStyle: "italic" }}>
+          Keine Provisionen gefunden.
+        </div>
       ) : (
         <table style={{
           width: "100%",
@@ -298,7 +328,7 @@ export function Provisions() {
             </tr>
           </thead>
           <tbody>
-            {filteredAndSortedClaims.map((claim) => {
+            {paginatedClaims.map((claim) => {
               const blockReason = getBlockReason(claim);
               return (
                 <>
@@ -370,17 +400,18 @@ export function Provisions() {
                           {claim.status === "IN_PRÜFUNG" && claim.paymentStatus === "EINGEGANGEN" && (
                             <button
                               onClick={() => handleApprove(claim.claimId)}
+                              disabled={approvingFor === claim.claimId}
                               style={{
                                 padding: "0.5rem 1rem",
-                                background: "#28a745",
+                                background: approvingFor === claim.claimId ? "#ccc" : "#28a745",
                                 color: "white",
                                 border: "none",
                                 borderRadius: "4px",
-                                cursor: "pointer",
+                                cursor: approvingFor === claim.claimId ? "not-allowed" : "pointer",
                                 fontSize: "0.85rem"
                               }}
                             >
-                              Provision bestätigen
+                              {approvingFor === claim.claimId ? "Bitte warten..." : "Provision bestätigen"}
                             </button>
                           )}
                           {claim.status === "BESTÄTIGT" &&
@@ -388,17 +419,18 @@ export function Provisions() {
                             new Date().getTime() >= new Date(claim.holdUntil).getTime() && (
                               <button
                                 onClick={() => handlePayout(claim.claimId)}
+                                disabled={payoutFor === claim.claimId}
                                 style={{
                                   padding: "0.5rem 1rem",
-                                  background: "#17a2b8",
+                                  background: payoutFor === claim.claimId ? "#ccc" : "#17a2b8",
                                   color: "white",
                                   border: "none",
                                   borderRadius: "4px",
-                                  cursor: "pointer",
+                                  cursor: payoutFor === claim.claimId ? "not-allowed" : "pointer",
                                   fontSize: "0.85rem"
                                 }}
                               >
-                                Auszahlung auslösen
+                                {payoutFor === claim.claimId ? "Bitte warten..." : "Auszahlung auslösen"}
                               </button>
                             )}
                         </div>
@@ -417,6 +449,49 @@ export function Provisions() {
             })}
           </tbody>
         </table>
+      )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div style={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          gap: "1rem",
+          marginTop: "1rem"
+        }}>
+          <button
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            style={{
+              padding: "0.5rem 1rem",
+              background: currentPage === 1 ? "#ccc" : "#007bff",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: currentPage === 1 ? "not-allowed" : "pointer"
+            }}
+          >
+            Zurück
+          </button>
+          <span style={{ fontSize: "0.9rem" }}>
+            Seite {currentPage} von {totalPages}
+          </span>
+          <button
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            style={{
+              padding: "0.5rem 1rem",
+              background: currentPage === totalPages ? "#ccc" : "#007bff",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: currentPage === totalPages ? "not-allowed" : "pointer"
+            }}
+          >
+            Weiter
+          </button>
+        </div>
       )}
     </div>
   );

@@ -146,9 +146,11 @@ export function Layout({ children, currentPage, onNavigate }: LayoutProps) {
                 border: "1px solid #ccc",
                 borderRadius: "4px",
                 boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                zIndex: 1000
+                zIndex: 1000,
+                color: "#666",
+                fontStyle: "italic"
               }}>
-                Keine Ergebnisse gefunden.
+                Keine Suchergebnisse gefunden.
               </div>
             )}
           </form>

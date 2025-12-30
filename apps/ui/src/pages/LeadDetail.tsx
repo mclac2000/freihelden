@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getCommunicationForEntity, addCommunicationNote, CommunicationEvent, uploadFile, getFileAttachments, FileAttachment, askAI, sendEmail } from "../api";
+import { ErrorMessage } from "../components/ErrorMessage";
 
 interface LeadDetailProps {
   leadId?: string;
@@ -58,7 +59,7 @@ export function LeadDetail({ leadId = "test-lead-1" }: LeadDetailProps) {
       setNewNote("");
       loadNotes();
     } catch (err: any) {
-      alert(`Fehler: ${err.message}`);
+      setError(err.message);
     } finally {
       setSaving(false);
     }
@@ -70,7 +71,7 @@ export function LeadDetail({ leadId = "test-lead-1" }: LeadDetailProps) {
       await uploadFile(eventId, file);
       loadNotes(); // Reload to get updated attachments
     } catch (err: any) {
-      alert(`Fehler beim Upload: ${err.message}`);
+      setError(`Fehler beim Upload: ${err.message}`);
     } finally {
       setUploadingForEvent(null);
     }
@@ -93,7 +94,7 @@ export function LeadDetail({ leadId = "test-lead-1" }: LeadDetailProps) {
       const answer = await askAI("LEAD", leadId, aiQuestion.trim());
       setAiAnswer(answer);
     } catch (err: any) {
-      alert(`Fehler: ${err.message}`);
+      setError(`KI-Fehler: ${err.message}`);
     } finally {
       setAiLoading(false);
     }
@@ -101,11 +102,12 @@ export function LeadDetail({ leadId = "test-lead-1" }: LeadDetailProps) {
 
   const handleSendEmail = async () => {
     if (!emailTo.trim() || !emailSubject.trim() || !emailBody.trim()) {
-      alert("Bitte füllen Sie alle Felder aus.");
+      setError("Bitte füllen Sie alle Felder aus.");
       return;
     }
 
     setEmailSending(true);
+    setError(null);
     try {
       await sendEmail("LEAD", leadId, emailTo.trim(), emailSubject.trim(), emailBody.trim());
       setEmailTo("");
@@ -114,26 +116,28 @@ export function LeadDetail({ leadId = "test-lead-1" }: LeadDetailProps) {
       setShowEmailForm(false);
       loadNotes(); // Reload to show the new email communication
     } catch (err: any) {
-      alert(`Fehler beim Senden: ${err.message}`);
+      setError(`Fehler beim Senden: ${err.message}`);
     } finally {
       setEmailSending(false);
     }
   };
 
   if (loading) {
-    return <div>Lade Notizen...</div>;
+    return <div style={{ padding: "2rem", textAlign: "center" }}>Lade Notizen...</div>;
   }
 
   if (error) {
-    return <div style={{ color: "red" }}>Fehler: {error}</div>;
+    return <ErrorMessage message={error} />;
   }
 
   return (
     <div>
-      <h1>Lead: {leadId}</h1>
+      <h2>Lead: {leadId}</h2>
+
+      {error && <ErrorMessage message={error} />}
 
       <div style={{ marginBottom: "2rem" }}>
-        <h2>Notiz hinzufügen</h2>
+        <h3>Notiz hinzufügen</h3>
         <textarea
           value={newNote}
           onChange={(e) => setNewNote(e.target.value)}
@@ -166,7 +170,7 @@ export function LeadDetail({ leadId = "test-lead-1" }: LeadDetailProps) {
       </div>
 
       <div style={{ marginBottom: "2rem" }}>
-        <h2>KI-Unterstützung</h2>
+        <h3>KI-Unterstützung</h3>
         <div style={{ padding: "1rem", background: "#fff3cd", borderRadius: "4px", border: "1px solid #ffc107", marginBottom: "1rem" }}>
           <strong>Hinweis:</strong> KI-Unterstützung – keine Entscheidungsgrundlage
         </div>
@@ -316,9 +320,11 @@ export function LeadDetail({ leadId = "test-lead-1" }: LeadDetailProps) {
       </div>
 
       <div>
-        <h2>Notizen</h2>
+        <h3>Kommunikation</h3>
         {notes.length === 0 ? (
-          <div style={{ color: "#666", fontStyle: "italic" }}>Keine Notizen vorhanden.</div>
+          <div style={{ padding: "2rem", textAlign: "center", color: "#666", fontStyle: "italic" }}>
+            Noch keine Notizen vorhanden.
+          </div>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
             {notes
@@ -370,10 +376,10 @@ export function LeadDetail({ leadId = "test-lead-1" }: LeadDetailProps) {
                         marginBottom: "0.5rem"
                       }}
                     >
-                      {uploadingForEvent === note.id ? "Upload..." : "Datei anhängen"}
+                      {uploadingForEvent === note.id ? "Upload läuft..." : "Datei anhängen"}
                     </label>
                     
-                    {attachmentsByEvent[note.id] && attachmentsByEvent[note.id].length > 0 && (
+                    {attachmentsByEvent[note.id] && attachmentsByEvent[note.id].length > 0 ? (
                       <div style={{ marginTop: "0.5rem" }}>
                         {attachmentsByEvent[note.id].map((att) => (
                           <div
@@ -394,6 +400,10 @@ export function LeadDetail({ leadId = "test-lead-1" }: LeadDetailProps) {
                             </div>
                           </div>
                         ))}
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: "0.85rem", color: "#666", fontStyle: "italic" }}>
+                        Für diese Notiz gibt es noch keine Dateien.
                       </div>
                     )}
                   </div>
