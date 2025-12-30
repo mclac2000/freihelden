@@ -1,3 +1,5 @@
+import { VorgangRepository } from "../ports/vorgang-repository";
+
 export type Vorgang =
   | {
       type: "LeadCreated";
@@ -21,11 +23,13 @@ export type Vorgang =
 
 const vorgaenge: Vorgang[] = [];
 
-export function recordVorgang(vorgang: Vorgang): void {
-  vorgaenge.push(vorgang);
-}
+export const inMemoryVorgangRepository: VorgangRepository = {
+  record(vorgang): void {
+    vorgaenge.push(vorgang);
+  },
 
-export function getAllVorgaenge(): Vorgang[] {
-  return [...vorgaenge];
-}
+  getAll(): Vorgang[] {
+    return [...vorgaenge];
+  }
+};
 

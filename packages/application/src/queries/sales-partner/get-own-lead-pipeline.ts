@@ -1,4 +1,4 @@
-import { getAllLeads } from "../../state/lead-store";
+import { inMemoryLeadRepository } from "../../state/lead-store";
 
 type LeadPipelineItem = {
   leadId: string;
@@ -9,6 +9,6 @@ type LeadPipelineItem = {
 };
 
 export function getOwnLeadPipeline(): LeadPipelineItem[] {
-  return getAllLeads();
+  return inMemoryLeadRepository.getAll();
 }
 

@@ -1,21 +1,27 @@
-import { addLead, Lead } from "../../state/lead-store";
-import { recordVorgang } from "../../state/vorgang-store";
+import { Lead, LeadRepository } from "../../ports/lead-repository";
+import { VorgangRepository } from "../../ports/vorgang-repository";
+import { inMemoryLeadRepository } from "../../state/lead-store";
+import { inMemoryVorgangRepository } from "../../state/vorgang-store";
 
 type CreateLeadInput = {
   leadId: string;
   source: string;
 };
 
-export function createLead(input: CreateLeadInput): Lead {
+export function createLead(
+  input: CreateLeadInput,
+  leadRepo: LeadRepository = inMemoryLeadRepository,
+  vorgangRepo: VorgangRepository = inMemoryVorgangRepository
+): Lead {
   const lead: Lead = {
     leadId: input.leadId,
     status: "neu",
     source: input.source
   };
 
-  addLead(lead);
+  leadRepo.add(lead);
 
-  recordVorgang({
+  vorgangRepo.record({
     type: "LeadCreated",
     entity: "Lead",
     entityId: lead.leadId,
