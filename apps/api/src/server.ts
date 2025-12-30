@@ -4,6 +4,8 @@ import { createLead } from "../../../packages/application/src/commands/lead/crea
 import { assignLeadToSalesPartner } from "../../../packages/application/src/commands/lead/assign-lead-to-sales-partner";
 import { getOwnLeadPipeline } from "../../../packages/application/src/queries/sales-partner/get-own-lead-pipeline";
 import { authGuard } from "./auth/auth-guard";
+import { requireRole } from "./auth/require-role";
+import { READ_ROLES, WRITE_ROLES } from "./auth/access-rules";
 
 export function startServer(persistenceMode: "memory" | "file" = "memory") {
   const app = express();
@@ -26,6 +28,7 @@ export function startServer(persistenceMode: "memory" | "file" = "memory") {
   app.post(
     "/leads",
     authGuard,
+    requireRole(WRITE_ROLES),
     requireFields(["leadId", "source"]),
     (req, res) => {
       const lead = createLead(req.body, ctx);
@@ -36,6 +39,7 @@ export function startServer(persistenceMode: "memory" | "file" = "memory") {
   app.post(
     "/leads/:id/assign",
     authGuard,
+    requireRole(WRITE_ROLES),
     requireFields(["salesPartnerId", "assignedAt"]),
     (req, res) => {
       assignLeadToSalesPartner(
@@ -50,7 +54,7 @@ export function startServer(persistenceMode: "memory" | "file" = "memory") {
     }
   );
 
-  app.get("/leads", authGuard, (_req, res) => {
+  app.get("/leads", authGuard, requireRole(READ_ROLES), (_req, res) => {
     res.json(getOwnLeadPipeline());
   });
 
