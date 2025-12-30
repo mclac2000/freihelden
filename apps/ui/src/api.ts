@@ -1,19 +1,24 @@
-import { DEV_AUTH } from "./auth";
+// Dev-Identität (für lokale Entwicklung)
+const DEV_ACTOR_ID = "test-user-1";
+const DEV_ACTOR_ROLE = "SALES_PARTNER";
 
-const BASE_URL = "http://localhost:3000/api";
+// API-Base-URL (Development)
+const API_BASE = "http://localhost:3000/api";
 
-async function fetchJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${BASE_URL}${path}`, {
-    method: "GET",
+async function fetchJson<T>(path: string, method: string = "GET", body?: any): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method,
     headers: {
       "Content-Type": "application/json",
-      "x-actor-id": DEV_AUTH.actorId,
-      "x-actor-role": DEV_AUTH.role
-    }
+      "x-actor-id": DEV_ACTOR_ID,
+      "x-actor-role": DEV_ACTOR_ROLE
+    },
+    body: body ? JSON.stringify(body) : undefined
   });
 
   if (!response.ok) {
-    throw new Error(`API error: ${response.status} ${response.statusText}`);
+    const error = await response.json().catch(() => ({ error: `API error: ${response.status} ${response.statusText}` }));
+    throw new Error(error.error || `API error: ${response.status} ${response.statusText}`);
   }
 
   return response.json();
@@ -39,39 +44,11 @@ export async function getAllProvisionClaims(): Promise<ProvisionClaimView[]> {
 }
 
 export async function approveProvisionClaim(claimId: string): Promise<ProvisionClaimView> {
-  const response = await fetch(`${BASE_URL}/provisions/${claimId}/approve`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-actor-id": DEV_AUTH.actorId,
-      "x-actor-role": DEV_AUTH.role
-    }
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || `API error: ${response.status} ${response.statusText}`);
-  }
-
-  return response.json();
+  return fetchJson<ProvisionClaimView>(`/provisions/${claimId}/approve`, "POST");
 }
 
 export async function triggerProvisionPayout(claimId: string): Promise<ProvisionClaimView> {
-  const response = await fetch(`${BASE_URL}/provisions/${claimId}/payout`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-actor-id": DEV_AUTH.actorId,
-      "x-actor-role": DEV_AUTH.role
-    }
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || `API error: ${response.status} ${response.statusText}`);
-  }
-
-  return response.json();
+  return fetchJson<ProvisionClaimView>(`/provisions/${claimId}/payout`, "POST");
 }
 
 export type Vorgang = {
@@ -108,22 +85,7 @@ export async function addCommunicationNote(
   entityId: string,
   content: string
 ): Promise<CommunicationEvent> {
-  const response = await fetch(`${BASE_URL}/communication/note`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-actor-id": DEV_AUTH.actorId,
-      "x-actor-role": DEV_AUTH.role
-    },
-    body: JSON.stringify({ entityType, entityId, content })
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || `API error: ${response.status} ${response.statusText}`);
-  }
-
-  return response.json();
+  return fetchJson<CommunicationEvent>("/communication/note", "POST", { entityType, entityId, content });
 }
 
 export async function getCommunicationForEntity(
@@ -155,11 +117,11 @@ export async function uploadFile(
   formData.append("file", file);
   formData.append("communicationEventId", communicationEventId);
 
-  const response = await fetch(`${BASE_URL}/files/upload`, {
+  const response = await fetch(`${API_BASE}/files/upload`, {
     method: "POST",
     headers: {
-      "x-actor-id": DEV_AUTH.actorId,
-      "x-actor-role": DEV_AUTH.role
+      "x-actor-id": DEV_ACTOR_ID,
+      "x-actor-role": DEV_ACTOR_ROLE
     },
     body: formData
   });
@@ -183,22 +145,7 @@ export async function askAI(
   entityId: string,
   question: string
 ): Promise<string> {
-  const response = await fetch(`${BASE_URL}/ai/ask`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-actor-id": DEV_AUTH.actorId,
-      "x-actor-role": DEV_AUTH.role
-    },
-    body: JSON.stringify({ entityType, entityId, question })
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || `API error: ${response.status} ${response.statusText}`);
-  }
-
-  const data = await response.json();
+  const data = await fetchJson<{ content: string }>("/ai/ask", "POST", { entityType, entityId, question });
   return data.content;
 }
 
@@ -221,19 +168,6 @@ export async function sendEmail(
   subject: string,
   body: string
 ): Promise<void> {
-  const response = await fetch(`${BASE_URL}/mail/send`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-actor-id": DEV_AUTH.actorId,
-      "x-actor-role": DEV_AUTH.role
-    },
-    body: JSON.stringify({ entityType, entityId, to, subject, body })
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || `API error: ${response.status} ${response.statusText}`);
-  }
+  await fetchJson("/mail/send", "POST", { entityType, entityId, to, subject, body });
 }
 
