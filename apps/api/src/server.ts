@@ -3,18 +3,13 @@ import { createApplicationContext } from "../../../packages/application/src/appl
 import { createLead } from "../../../packages/application/src/commands/lead/create-lead";
 import { assignLeadToSalesPartner } from "../../../packages/application/src/commands/lead/assign-lead-to-sales-partner";
 import { getOwnLeadPipeline } from "../../../packages/application/src/queries/sales-partner/get-own-lead-pipeline";
+import { authGuard } from "./auth/auth-guard";
 
 export function startServer(persistenceMode: "memory" | "file" = "memory") {
   const app = express();
   app.use(express.json());
 
   const ctx = createApplicationContext(persistenceMode);
-
-  // --- auth guard (placeholder) ---
-  function authGuard(_req: Request, _res: Response, next: NextFunction) {
-    // intentionally empty – real auth comes later
-    next();
-  }
 
   function requireFields(fields: string[]) {
     return (req: Request, _res: Response, next: NextFunction) => {
