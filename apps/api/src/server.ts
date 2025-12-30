@@ -1,4 +1,5 @@
 import express, { Request, Response, NextFunction } from "express";
+import cors from "cors";
 import { createApplicationContext } from "../../../packages/application/src/application-context";
 import { createLead } from "../../../packages/application/src/commands/lead/create-lead";
 import { assignLeadToSalesPartner } from "../../../packages/application/src/commands/lead/assign-lead-to-sales-partner";
@@ -28,6 +29,20 @@ import * as path from "path";
 
 export function startServer(persistenceMode: "memory" | "file" = "memory") {
   const app = express();
+
+  app.use(
+    cors({
+      origin: "http://localhost:5173",
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      allowedHeaders: [
+        "Content-Type",
+        "x-actor-id",
+        "x-actor-role"
+      ],
+      credentials: false
+    })
+  );
+
   app.use(express.json());
 
   // Health Check
