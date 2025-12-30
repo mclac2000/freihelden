@@ -4,6 +4,12 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/apps/api/src/index.js"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
 }
-
