@@ -10,7 +10,12 @@ export function startServer(persistenceMode: "memory" | "file" = "memory") {
 
   const ctx = createApplicationContext(persistenceMode);
 
-  // --- simple request validation ---
+  // --- auth guard (placeholder) ---
+  function authGuard(_req: Request, _res: Response, next: NextFunction) {
+    // intentionally empty – real auth comes later
+    next();
+  }
+
   function requireFields(fields: string[]) {
     return (req: Request, _res: Response, next: NextFunction) => {
       for (const field of fields) {
@@ -25,6 +30,7 @@ export function startServer(persistenceMode: "memory" | "file" = "memory") {
   // --- routes ---
   app.post(
     "/leads",
+    authGuard,
     requireFields(["leadId", "source"]),
     (req, res) => {
       const lead = createLead(req.body, ctx);
@@ -34,6 +40,7 @@ export function startServer(persistenceMode: "memory" | "file" = "memory") {
 
   app.post(
     "/leads/:id/assign",
+    authGuard,
     requireFields(["salesPartnerId", "assignedAt"]),
     (req, res) => {
       assignLeadToSalesPartner(
@@ -48,7 +55,7 @@ export function startServer(persistenceMode: "memory" | "file" = "memory") {
     }
   );
 
-  app.get("/leads", (_req, res) => {
+  app.get("/leads", authGuard, (_req, res) => {
     res.json(getOwnLeadPipeline());
   });
 
