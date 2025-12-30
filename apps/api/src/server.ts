@@ -3,14 +3,14 @@ import cors from "cors";
 
 const app = express();
 
-// Global CORS – minimal & sicher
-app.use(
-  cors({
-    origin: "http://localhost:5173",
-    methods: ["GET", "POST", "OPTIONS"],
-    allowedHeaders: ["Content-Type"]
-  })
-);
+  // Global CORS – minimal & sicher
+  app.use(
+    cors({
+      origin: "http://localhost:5173",
+      methods: ["GET", "POST", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "x-actor-id", "x-actor-role"]
+    })
+  );
 
 app.use(express.json());
 
