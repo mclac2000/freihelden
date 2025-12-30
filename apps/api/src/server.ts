@@ -3,9 +3,12 @@ import { createApplicationContext } from "../../../packages/application/src/appl
 import { createLead } from "../../../packages/application/src/commands/lead/create-lead";
 import { assignLeadToSalesPartner } from "../../../packages/application/src/commands/lead/assign-lead-to-sales-partner";
 import { getOwnLeadPipeline } from "../../../packages/application/src/queries/sales-partner/get-own-lead-pipeline";
+import { getOwnProvisionClaims } from "../../../packages/application/src/queries/provision/get-own-provision-claims";
+import { getAllProvisionClaims } from "../../../packages/application/src/queries/provision/get-all-provision-claims";
 import { authGuard } from "./auth/auth-guard";
 import { requireRole } from "./auth/require-role";
 import { READ_ROLES, WRITE_ROLES } from "./auth/access-rules";
+import { HardSystemRole } from "../../../packages/domain/src/roles";
 
 export function startServer(persistenceMode: "memory" | "file" = "memory") {
   const app = express();
@@ -57,6 +60,26 @@ export function startServer(persistenceMode: "memory" | "file" = "memory") {
   app.get("/leads", authGuard, requireRole(READ_ROLES), (_req, res) => {
     res.json(getOwnLeadPipeline());
   });
+
+  // --- provision routes ---
+  app.get(
+    "/api/provisions/mine",
+    authGuard,
+    requireRole(["SALES_PARTNER", "ADMIN"] as HardSystemRole[]),
+    (req, res) => {
+      const salesPartnerId = req.authContext?.actorId || "";
+      res.json(getOwnProvisionClaims(salesPartnerId));
+    }
+  );
+
+  app.get(
+    "/api/provisions/all",
+    authGuard,
+    requireRole(["COMMISSION_CONTROLLER", "ADMIN"] as HardSystemRole[]),
+    (_req, res) => {
+      res.json(getAllProvisionClaims());
+    }
+  );
 
   // --- global error handler ---
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
