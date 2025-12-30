@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getCommunicationForEntity, addCommunicationNote, CommunicationEvent } from "../api";
+import { getCommunicationForEntity, addCommunicationNote, CommunicationEvent, uploadFile, getFileAttachments, FileAttachment } from "../api";
 
 interface LeadDetailProps {
   leadId?: string;
@@ -11,11 +11,26 @@ export function LeadDetail({ leadId = "test-lead-1" }: LeadDetailProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [attachmentsByEvent, setAttachmentsByEvent] = useState<Record<string, FileAttachment[]>>({});
+  const [uploadingForEvent, setUploadingForEvent] = useState<string | null>(null);
 
   const loadNotes = () => {
     setLoading(true);
     getCommunicationForEntity("LEAD", leadId)
-      .then(setNotes)
+      .then(async (events) => {
+        setNotes(events);
+        // Load attachments for each event
+        const attachmentsMap: Record<string, FileAttachment[]> = {};
+        for (const event of events) {
+          try {
+            const atts = await getFileAttachments(event.id);
+            attachmentsMap[event.id] = atts;
+          } catch (err) {
+            attachmentsMap[event.id] = [];
+          }
+        }
+        setAttachmentsByEvent(attachmentsMap);
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   };
@@ -39,6 +54,24 @@ export function LeadDetail({ leadId = "test-lead-1" }: LeadDetailProps) {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleFileUpload = async (eventId: string, file: File) => {
+    setUploadingForEvent(eventId);
+    try {
+      await uploadFile(eventId, file);
+      loadNotes(); // Reload to get updated attachments
+    } catch (err: any) {
+      alert(`Fehler beim Upload: ${err.message}`);
+    } finally {
+      setUploadingForEvent(null);
+    }
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   if (loading) {
@@ -113,6 +146,61 @@ export function LeadDetail({ leadId = "test-lead-1" }: LeadDetailProps) {
                     </div>
                   </div>
                   <div style={{ whiteSpace: "pre-wrap" }}>{note.content}</div>
+                  
+                  {/* File attachments */}
+                  <div style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid #eee" }}>
+                    <div style={{ marginBottom: "0.5rem", fontSize: "0.9rem", fontWeight: "bold" }}>Anhänge:</div>
+                    <input
+                      type="file"
+                      id={`file-${note.id}`}
+                      style={{ display: "none" }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          handleFileUpload(note.id, file);
+                        }
+                      }}
+                    />
+                    <label
+                      htmlFor={`file-${note.id}`}
+                      style={{
+                        display: "inline-block",
+                        padding: "0.25rem 0.5rem",
+                        background: uploadingForEvent === note.id ? "#ccc" : "#28a745",
+                        color: "white",
+                        borderRadius: "4px",
+                        cursor: uploadingForEvent === note.id ? "not-allowed" : "pointer",
+                        fontSize: "0.85rem",
+                        marginBottom: "0.5rem"
+                      }}
+                    >
+                      {uploadingForEvent === note.id ? "Upload..." : "Datei anhängen"}
+                    </label>
+                    
+                    {attachmentsByEvent[note.id] && attachmentsByEvent[note.id].length > 0 && (
+                      <div style={{ marginTop: "0.5rem" }}>
+                        {attachmentsByEvent[note.id].map((att) => (
+                          <div
+                            key={att.id}
+                            style={{
+                              padding: "0.5rem",
+                              background: "#f0f0f0",
+                              borderRadius: "4px",
+                              marginTop: "0.25rem",
+                              fontSize: "0.85rem"
+                            }}
+                          >
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                              <span>{att.filename}</span>
+                              <span style={{ color: "#666" }}>
+                                {formatFileSize(att.sizeBytes)} • {new Date(att.uploadedAt).toLocaleString("de-DE")}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
           </div>

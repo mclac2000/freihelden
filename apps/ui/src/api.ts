@@ -133,3 +133,48 @@ export async function getCommunicationForEntity(
   return fetchJson<CommunicationEvent[]>(`/communication?entityType=${entityType}&entityId=${entityId}`);
 }
 
+export type FileAttachment = {
+  id: string;
+  communicationEventId: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+  storagePath: string;
+  uploadedAt: string;
+  uploadedBy: {
+    actorId: string;
+    role: string;
+  };
+};
+
+export async function uploadFile(
+  communicationEventId: string,
+  file: File
+): Promise<FileAttachment> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("communicationEventId", communicationEventId);
+
+  const response = await fetch(`${BASE_URL}/files/upload`, {
+    method: "POST",
+    headers: {
+      "x-actor-id": DEV_AUTH.actorId,
+      "x-actor-role": DEV_AUTH.role
+    },
+    body: formData
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || `API error: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export async function getFileAttachments(
+  communicationEventId: string
+): Promise<FileAttachment[]> {
+  return fetchJson<FileAttachment[]>(`/files?communicationEventId=${communicationEventId}`);
+}
+

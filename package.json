@@ -17,6 +17,8 @@
     "vitest": "^4.0.16"
   },
   "dependencies": {
-    "express": "^5.2.1"
+    "@types/multer": "^2.0.0",
+    "express": "^5.2.1",
+    "multer": "^2.0.2"
   }
 }
