@@ -25,3 +25,8 @@ export const inMemoryLeadRepository: LeadRepository = {
 
 const leads: Lead[] = [];
 
+// For testing only
+export function resetLeadStore(): void {
+  leads.length = 0;
+}
+

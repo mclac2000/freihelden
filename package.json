@@ -7,9 +7,11 @@
   ],
   "scripts": {
     "build": "tsc",
-    "start": "node dist/apps/api/src/index.js"
+    "start": "node dist/apps/api/src/index.js",
+    "test": "vitest run"
   },
   "devDependencies": {
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.16"
   }
 }

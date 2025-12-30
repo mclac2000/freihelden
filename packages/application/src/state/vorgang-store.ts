@@ -23,6 +23,11 @@ export type Vorgang =
 
 const vorgaenge: Vorgang[] = [];
 
+// For testing only
+export function resetVorgangStore(): void {
+  vorgaenge.length = 0;
+}
+
 export const inMemoryVorgangRepository: VorgangRepository = {
   record(vorgang): void {
     vorgaenge.push(vorgang);
