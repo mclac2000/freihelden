@@ -30,6 +30,11 @@ export function startServer(persistenceMode: "memory" | "file" = "memory") {
   const app = express();
   app.use(express.json());
 
+  // Health Check
+  app.get("/health", (_req, res) => {
+    res.status(200).json({ status: "ok" });
+  });
+
   const ctx = createApplicationContext(persistenceMode);
 
   function requireFields(fields: string[]) {
