@@ -1,0 +1,10 @@
+export const VORGANG_TYPES = {
+  LEAD_CREATED: "LEAD_CREATED",
+  LEAD_ASSIGNED: "LEAD_ASSIGNED",
+
+  COMMISSION_PAYOUT_TRIGGERED: "COMMISSION_PAYOUT_TRIGGERED"
+} as const;
+
+export type VorgangType =
+  typeof VORGANG_TYPES[keyof typeof VORGANG_TYPES];
+
