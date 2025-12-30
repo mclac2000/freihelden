@@ -43,10 +43,6 @@ export function startServer(persistenceMode: "memory" | "file" = "memory") {
     })
   );
 
-  // Optional, aber sauber:
-  app.options("*", cors());
-
-  // Danach ERST:
   app.use(express.json());
 
   // Health Check
