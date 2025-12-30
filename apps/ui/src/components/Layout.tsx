@@ -2,8 +2,8 @@ import { ReactNode } from "react";
 
 interface LayoutProps {
   children: ReactNode;
-  currentPage: "dashboard" | "provisions";
-  onNavigate: (page: "dashboard" | "provisions") => void;
+  currentPage: "dashboard" | "provisions" | "lead";
+  onNavigate: (page: "dashboard" | "provisions" | "lead") => void;
 }
 
 export function Layout({ children, currentPage, onNavigate }: LayoutProps) {

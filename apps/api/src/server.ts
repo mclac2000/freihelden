@@ -7,6 +7,8 @@ import { getOwnProvisionClaims } from "../../../packages/application/src/queries
 import { getAllProvisionClaims } from "../../../packages/application/src/queries/provision/get-all-provision-claims";
 import { getProvisionClaimAudit } from "../../../packages/application/src/queries/provision/get-provision-claim-audit";
 import { approveProvisionClaim, triggerCommissionPayout } from "../../../packages/application/src/commands/provision/provision-commands";
+import { addNote } from "../../../packages/application/src/commands/communication/add-note";
+import { getCommunicationForEntity } from "../../../packages/application/src/queries/communication/get-communication-for-entity";
 import { authGuard } from "./auth/auth-guard";
 import { requireRole } from "./auth/require-role";
 import { READ_ROLES, WRITE_ROLES } from "./auth/access-rules";
@@ -165,6 +167,41 @@ export function startServer(persistenceMode: "memory" | "file" = "memory") {
       } catch (err: any) {
         res.status(400).json({ error: err.message });
       }
+    }
+  );
+
+  // --- communication routes ---
+  app.post(
+    "/api/communication/note",
+    authGuard,
+    requireRole(WRITE_ROLES),
+    requireFields(["entityType", "entityId", "content"]),
+    (req, res) => {
+      const actorId = req.authContext?.actorId || "";
+      const actorRole = req.authContext?.role || "";
+      const event = addNote(
+        req.body.entityType,
+        req.body.entityId,
+        req.body.content,
+        { actorId, role: actorRole }
+      );
+      res.json(event);
+    }
+  );
+
+  app.get(
+    "/api/communication",
+    authGuard,
+    requireRole(READ_ROLES),
+    (req, res) => {
+      const entityType = req.query.entityType as string;
+      const entityId = req.query.entityId as string;
+      if (!entityType || !entityId) {
+        res.status(400).json({ error: "Missing entityType or entityId" });
+        return;
+      }
+      const events = getCommunicationForEntity(entityType as "LEAD" | "CUSTOMER", entityId);
+      res.json(events);
     }
   );
 
