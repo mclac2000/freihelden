@@ -11,6 +11,9 @@ export const communicationStore = {
       e => e.entityType === entityType && e.entityId === entityId
     );
   },
+  getAll(): CommunicationEvent[] {
+    return [...events];
+  },
   reset() {
     events.length = 0;
   }

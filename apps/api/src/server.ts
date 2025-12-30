@@ -13,6 +13,7 @@ import { addFileAttachment } from "../../../packages/application/src/commands/co
 import { fileAttachmentStore } from "../../../packages/application/src/state/file-attachment-store";
 import { askAIAboutEntity } from "../../../packages/application/src/queries/ai/ask-ai-about-entity";
 import { OpenAIClient } from "../../../packages/infra/src/ai/openai-client";
+import { search } from "../../../packages/application/src/search/search-index";
 import { authGuard } from "./auth/auth-guard";
 import { requireRole } from "./auth/require-role";
 import { READ_ROLES, WRITE_ROLES } from "./auth/access-rules";
@@ -331,6 +332,22 @@ export function startServer(persistenceMode: "memory" | "file" = "memory") {
       const response = await askAIAboutEntity(aiClient, entityType, entityId, question);
 
       res.json({ content: response.content });
+    }
+  );
+
+  // --- search routes (read-only) ---
+  app.get(
+    "/api/search",
+    authGuard,
+    requireRole(READ_ROLES),
+    (req, res) => {
+      const query = req.query.q as string;
+      if (!query) {
+        res.status(400).json({ error: "Missing query parameter 'q'" });
+        return;
+      }
+      const results = search(query);
+      res.json(results);
     }
   );
 

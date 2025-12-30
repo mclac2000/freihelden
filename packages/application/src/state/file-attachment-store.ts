@@ -11,6 +11,9 @@ export const fileAttachmentStore = {
       a => a.communicationEventId === communicationEventId
     );
   },
+  getAll(): FileAttachment[] {
+    return [...attachments];
+  },
   reset() {
     attachments.length = 0;
   }

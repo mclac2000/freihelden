@@ -202,3 +202,15 @@ export async function askAI(
   return data.content;
 }
 
+export type SearchResult = {
+  entityType: "LEAD" | "CUSTOMER";
+  entityId: string;
+  sourceType: "COMMUNICATION" | "ATTACHMENT";
+  sourceId: string;
+  preview: string;
+};
+
+export async function search(query: string): Promise<SearchResult[]> {
+  return fetchJson<SearchResult[]>(`/search?q=${encodeURIComponent(query)}`);
+}
+
