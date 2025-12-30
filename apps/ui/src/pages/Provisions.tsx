@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { getAllProvisionClaims, approveProvisionClaim, ProvisionClaimView } from "../api";
 import { DEV_AUTH } from "../auth";
+import { ProvisionAudit } from "../components/ProvisionAudit";
 
 // Hilfsfunktionen (UI-only, keine Seiteneffekte)
 function isReadyForPayout(claim: ProvisionClaimView): boolean {
@@ -66,6 +67,9 @@ export function Provisions() {
   // Sortierung State
   const [sortBy, setSortBy] = useState<"amountCents" | "holdUntil">("holdUntil");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+
+  // Audit-Ansicht State
+  const [openAuditFor, setOpenAuditFor] = useState<string | null>(null);
 
   const loadClaims = () => {
     getAllProvisionClaims()
@@ -274,6 +278,7 @@ export function Provisions() {
               <th style={{ padding: "0.5rem", textAlign: "left", border: "1px solid #ddd" }}>Payment</th>
               <th style={{ padding: "0.5rem", textAlign: "left", border: "1px solid #ddd" }}>Hold Until</th>
               <th style={{ padding: "0.5rem", textAlign: "left", border: "1px solid #ddd" }}>Note</th>
+              <th style={{ padding: "0.5rem", textAlign: "left", border: "1px solid #ddd" }}>Audit</th>
               {DEV_AUTH.role === "COMMISSION_CONTROLLER" && (
                 <th style={{ padding: "0.5rem", textAlign: "left", border: "1px solid #ddd" }}>Aktion</th>
               )}
@@ -283,73 +288,98 @@ export function Provisions() {
             {filteredAndSortedClaims.map((claim) => {
               const blockReason = getBlockReason(claim);
               return (
-                <tr key={claim.claimId}>
-                  <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>{claim.claimId}</td>
-                  <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>{claim.source}</td>
-                  <td style={{ padding: "0.5rem", textAlign: "right", border: "1px solid #ddd" }}>
-                    {(claim.amountCents / 100).toFixed(2)}
-                  </td>
-                  <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>{claim.currency}</td>
-                  <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>
-                    <div>
+                <>
+                  <tr key={claim.claimId}>
+                    <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>{claim.claimId}</td>
+                    <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>{claim.source}</td>
+                    <td style={{ padding: "0.5rem", textAlign: "right", border: "1px solid #ddd" }}>
+                      {(claim.amountCents / 100).toFixed(2)}
+                    </td>
+                    <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>{claim.currency}</td>
+                    <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>
+                      <div>
+                        <span
+                          style={{
+                            display: "inline-block",
+                            padding: "0.25rem 0.5rem",
+                            borderRadius: "4px",
+                            background: getStatusColor(claim.status),
+                            color: "white",
+                            fontSize: "0.85rem",
+                            fontWeight: "bold"
+                          }}
+                        >
+                          {claim.status}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: "0.75rem", color: "#666", marginTop: "0.25rem" }}>
+                        {blockReason}
+                      </div>
+                    </td>
+                    <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>
                       <span
                         style={{
                           display: "inline-block",
                           padding: "0.25rem 0.5rem",
                           borderRadius: "4px",
-                          background: getStatusColor(claim.status),
+                          background: getPaymentStatusColor(claim.paymentStatus),
                           color: "white",
                           fontSize: "0.85rem",
                           fontWeight: "bold"
                         }}
                       >
-                        {claim.status}
+                        {claim.paymentStatus}
                       </span>
-                    </div>
-                    <div style={{ fontSize: "0.75rem", color: "#666", marginTop: "0.25rem" }}>
-                      {blockReason}
-                    </div>
-                  </td>
-                  <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>
-                    <span
-                      style={{
-                        display: "inline-block",
-                        padding: "0.25rem 0.5rem",
-                        borderRadius: "4px",
-                        background: getPaymentStatusColor(claim.paymentStatus),
-                        color: "white",
-                        fontSize: "0.85rem",
-                        fontWeight: "bold"
-                      }}
-                    >
-                      {claim.paymentStatus}
-                    </span>
-                  </td>
-                  <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>
-                    {new Date(claim.holdUntil).toLocaleDateString("de-DE")}
-                  </td>
-                  <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>{claim.note || "-"}</td>
-                  {DEV_AUTH.role === "COMMISSION_CONTROLLER" && (
-                    <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>
-                      {claim.status === "IN_PRÜFUNG" && claim.paymentStatus === "EINGEGANGEN" && (
-                        <button
-                          onClick={() => handleApprove(claim.claimId)}
-                          style={{
-                            padding: "0.5rem 1rem",
-                            background: "#28a745",
-                            color: "white",
-                            border: "none",
-                            borderRadius: "4px",
-                            cursor: "pointer",
-                            fontSize: "0.85rem"
-                          }}
-                        >
-                          Provision bestätigen
-                        </button>
-                      )}
                     </td>
+                    <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>
+                      {new Date(claim.holdUntil).toLocaleDateString("de-DE")}
+                    </td>
+                    <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>{claim.note || "-"}</td>
+                    <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>
+                      <button
+                        onClick={() => setOpenAuditFor(openAuditFor === claim.claimId ? null : claim.claimId)}
+                        style={{
+                          padding: "0.25rem 0.5rem",
+                          background: openAuditFor === claim.claimId ? "#6c757d" : "#007bff",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "4px",
+                          cursor: "pointer",
+                          fontSize: "0.8rem"
+                        }}
+                      >
+                        {openAuditFor === claim.claimId ? "Audit ausblenden" : "Audit anzeigen"}
+                      </button>
+                    </td>
+                    {DEV_AUTH.role === "COMMISSION_CONTROLLER" && (
+                      <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>
+                        {claim.status === "IN_PRÜFUNG" && claim.paymentStatus === "EINGEGANGEN" && (
+                          <button
+                            onClick={() => handleApprove(claim.claimId)}
+                            style={{
+                              padding: "0.5rem 1rem",
+                              background: "#28a745",
+                              color: "white",
+                              border: "none",
+                              borderRadius: "4px",
+                              cursor: "pointer",
+                              fontSize: "0.85rem"
+                            }}
+                          >
+                            Provision bestätigen
+                          </button>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                  {openAuditFor === claim.claimId && (
+                    <tr key={`${claim.claimId}-audit`}>
+                      <td colSpan={DEV_AUTH.role === "COMMISSION_CONTROLLER" ? 10 : 9} style={{ padding: 0, border: "none" }}>
+                        <ProvisionAudit claimId={claim.claimId} />
+                      </td>
+                    </tr>
                   )}
-                </tr>
+                </>
               );
             })}
           </tbody>

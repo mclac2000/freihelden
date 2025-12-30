@@ -56,3 +56,19 @@ export async function approveProvisionClaim(claimId: string): Promise<ProvisionC
   return response.json();
 }
 
+export type Vorgang = {
+  type: string;
+  entity: string;
+  entityId: string;
+  timestamp: string;
+  payload: any;
+  triggeredBy?: {
+    role: string;
+    actorId: string;
+  };
+};
+
+export async function getProvisionClaimAudit(claimId: string): Promise<Vorgang[]> {
+  return fetchJson<Vorgang[]>(`/provisions/${claimId}/audit`);
+}
+

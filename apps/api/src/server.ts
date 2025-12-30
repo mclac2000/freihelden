@@ -5,6 +5,7 @@ import { assignLeadToSalesPartner } from "../../../packages/application/src/comm
 import { getOwnLeadPipeline } from "../../../packages/application/src/queries/sales-partner/get-own-lead-pipeline";
 import { getOwnProvisionClaims } from "../../../packages/application/src/queries/provision/get-own-provision-claims";
 import { getAllProvisionClaims } from "../../../packages/application/src/queries/provision/get-all-provision-claims";
+import { getProvisionClaimAudit } from "../../../packages/application/src/queries/provision/get-provision-claim-audit";
 import { approveProvisionClaim } from "../../../packages/application/src/commands/provision/provision-commands";
 import { authGuard } from "./auth/auth-guard";
 import { requireRole } from "./auth/require-role";
@@ -80,6 +81,16 @@ export function startServer(persistenceMode: "memory" | "file" = "memory") {
     requireRole(["COMMISSION_CONTROLLER", "ADMIN"] as HardSystemRole[]),
     (_req, res) => {
       res.json(getAllProvisionClaims(ctx.provisionClaimRepository));
+    }
+  );
+
+  app.get(
+    "/api/provisions/:claimId/audit",
+    authGuard,
+    (req, res) => {
+      const claimId = req.params.claimId;
+      const audit = getProvisionClaimAudit(claimId);
+      res.json(audit);
     }
   );
 
