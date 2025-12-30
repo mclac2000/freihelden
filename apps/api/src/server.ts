@@ -11,6 +11,8 @@ import { addNote } from "../../../packages/application/src/commands/communicatio
 import { getCommunicationForEntity } from "../../../packages/application/src/queries/communication/get-communication-for-entity";
 import { addFileAttachment } from "../../../packages/application/src/commands/communication/add-file-attachment";
 import { fileAttachmentStore } from "../../../packages/application/src/state/file-attachment-store";
+import { askAIAboutEntity } from "../../../packages/application/src/queries/ai/ask-ai-about-entity";
+import { OpenAIClient } from "../../../packages/infra/src/ai/openai-client";
 import { authGuard } from "./auth/auth-guard";
 import { requireRole } from "./auth/require-role";
 import { READ_ROLES, WRITE_ROLES } from "./auth/access-rules";
@@ -311,6 +313,24 @@ export function startServer(persistenceMode: "memory" | "file" = "memory") {
       }
       const attachments = fileAttachmentStore.getByCommunicationEvent(communicationEventId);
       res.json(attachments);
+    }
+  );
+
+  // --- AI routes (read-only) ---
+  app.post(
+    "/api/ai/ask",
+    authGuard,
+    requireRole(READ_ROLES),
+    requireFields(["entityType", "entityId", "question"]),
+    async (req, res) => {
+      const entityType = req.body.entityType as "LEAD" | "CUSTOMER";
+      const entityId = req.body.entityId as string;
+      const question = req.body.question as string;
+
+      const aiClient = new OpenAIClient();
+      const response = await askAIAboutEntity(aiClient, entityType, entityId, question);
+
+      res.json({ content: response.content });
     }
   );
 

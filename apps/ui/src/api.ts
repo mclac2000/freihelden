@@ -178,3 +178,27 @@ export async function getFileAttachments(
   return fetchJson<FileAttachment[]>(`/files?communicationEventId=${communicationEventId}`);
 }
 
+export async function askAI(
+  entityType: "LEAD" | "CUSTOMER",
+  entityId: string,
+  question: string
+): Promise<string> {
+  const response = await fetch(`${BASE_URL}/ai/ask`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-actor-id": DEV_AUTH.actorId,
+      "x-actor-role": DEV_AUTH.role
+    },
+    body: JSON.stringify({ entityType, entityId, question })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || `API error: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  return data.content;
+}
+

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getCommunicationForEntity, addCommunicationNote, CommunicationEvent, uploadFile, getFileAttachments, FileAttachment } from "../api";
+import { getCommunicationForEntity, addCommunicationNote, CommunicationEvent, uploadFile, getFileAttachments, FileAttachment, askAI } from "../api";
 
 interface LeadDetailProps {
   leadId?: string;
@@ -13,6 +13,9 @@ export function LeadDetail({ leadId = "test-lead-1" }: LeadDetailProps) {
   const [saving, setSaving] = useState(false);
   const [attachmentsByEvent, setAttachmentsByEvent] = useState<Record<string, FileAttachment[]>>({});
   const [uploadingForEvent, setUploadingForEvent] = useState<string | null>(null);
+  const [aiQuestion, setAiQuestion] = useState("");
+  const [aiAnswer, setAiAnswer] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
   const loadNotes = () => {
     setLoading(true);
@@ -74,6 +77,23 @@ export function LeadDetail({ leadId = "test-lead-1" }: LeadDetailProps) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  const handleAskAI = async () => {
+    if (!aiQuestion.trim()) {
+      return;
+    }
+
+    setAiLoading(true);
+    setAiAnswer(null);
+    try {
+      const answer = await askAI("LEAD", leadId, aiQuestion.trim());
+      setAiAnswer(answer);
+    } catch (err: any) {
+      alert(`Fehler: ${err.message}`);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   if (loading) {
     return <div>Lade Notizen...</div>;
   }
@@ -117,6 +137,55 @@ export function LeadDetail({ leadId = "test-lead-1" }: LeadDetailProps) {
         >
           {saving ? "Speichern..." : "Speichern"}
         </button>
+      </div>
+
+      <div style={{ marginBottom: "2rem" }}>
+        <h2>KI-Unterstützung</h2>
+        <div style={{ padding: "1rem", background: "#fff3cd", borderRadius: "4px", border: "1px solid #ffc107", marginBottom: "1rem" }}>
+          <strong>Hinweis:</strong> KI-Unterstützung – keine Entscheidungsgrundlage
+        </div>
+        <textarea
+          value={aiQuestion}
+          onChange={(e) => setAiQuestion(e.target.value)}
+          placeholder="Frage an KI stellen..."
+          style={{
+            width: "100%",
+            minHeight: "80px",
+            padding: "0.5rem",
+            fontSize: "0.9rem",
+            border: "1px solid #ddd",
+            borderRadius: "4px",
+            marginBottom: "0.5rem"
+          }}
+        />
+        <button
+          onClick={handleAskAI}
+          disabled={!aiQuestion.trim() || aiLoading}
+          style={{
+            padding: "0.5rem 1rem",
+            background: aiLoading ? "#ccc" : "#28a745",
+            color: "white",
+            border: "none",
+            borderRadius: "4px",
+            cursor: aiLoading ? "not-allowed" : "pointer",
+            fontSize: "0.9rem"
+          }}
+        >
+          {aiLoading ? "KI fragt..." : "KI fragen"}
+        </button>
+        {aiAnswer && (
+          <div style={{
+            marginTop: "1rem",
+            padding: "1rem",
+            background: "#f9f9f9",
+            borderRadius: "4px",
+            border: "1px solid #ddd",
+            whiteSpace: "pre-wrap"
+          }}>
+            <div style={{ fontSize: "0.85rem", color: "#666", marginBottom: "0.5rem" }}>KI-Antwort:</div>
+            <div>{aiAnswer}</div>
+          </div>
+        )}
       </div>
 
       <div>
