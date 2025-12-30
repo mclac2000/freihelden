@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
-import { getAllProvisionClaims, ProvisionClaimView } from "../api";
+import { getAllProvisionClaims, approveProvisionClaim, ProvisionClaimView } from "../api";
+import { DEV_AUTH } from "../auth";
 
 // Hilfsfunktionen (UI-only, keine Seiteneffekte)
 function isReadyForPayout(claim: ProvisionClaimView): boolean {
@@ -66,12 +67,29 @@ export function Provisions() {
   const [sortBy, setSortBy] = useState<"amountCents" | "holdUntil">("holdUntil");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
-  useEffect(() => {
+  const loadClaims = () => {
     getAllProvisionClaims()
       .then(setClaims)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadClaims();
   }, []);
+
+  const handleApprove = async (claimId: string) => {
+    if (!confirm("Provision wirklich bestätigen?")) {
+      return;
+    }
+
+    try {
+      await approveProvisionClaim(claimId);
+      loadClaims();
+    } catch (err: any) {
+      alert(`Fehler: ${err.message}`);
+    }
+  };
 
   // Client-seitige Filterung und Sortierung
   const filteredAndSortedClaims = useMemo(() => {
@@ -256,6 +274,9 @@ export function Provisions() {
               <th style={{ padding: "0.5rem", textAlign: "left", border: "1px solid #ddd" }}>Payment</th>
               <th style={{ padding: "0.5rem", textAlign: "left", border: "1px solid #ddd" }}>Hold Until</th>
               <th style={{ padding: "0.5rem", textAlign: "left", border: "1px solid #ddd" }}>Note</th>
+              {DEV_AUTH.role === "COMMISSION_CONTROLLER" && (
+                <th style={{ padding: "0.5rem", textAlign: "left", border: "1px solid #ddd" }}>Aktion</th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -308,6 +329,26 @@ export function Provisions() {
                     {new Date(claim.holdUntil).toLocaleDateString("de-DE")}
                   </td>
                   <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>{claim.note || "-"}</td>
+                  {DEV_AUTH.role === "COMMISSION_CONTROLLER" && (
+                    <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>
+                      {claim.status === "IN_PRÜFUNG" && claim.paymentStatus === "EINGEGANGEN" && (
+                        <button
+                          onClick={() => handleApprove(claim.claimId)}
+                          style={{
+                            padding: "0.5rem 1rem",
+                            background: "#28a745",
+                            color: "white",
+                            border: "none",
+                            borderRadius: "4px",
+                            cursor: "pointer",
+                            fontSize: "0.85rem"
+                          }}
+                        >
+                          Provision bestätigen
+                        </button>
+                      )}
+                    </td>
+                  )}
                 </tr>
               );
             })}
