@@ -18,6 +18,7 @@ out/
 .env
 .env.local
 .env.*.local
+*.local
 .env.development
 .env.staging
 .env.production

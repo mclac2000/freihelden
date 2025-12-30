@@ -4,6 +4,10 @@
 
 Dieses Repository enthält die vollständige Infrastruktur und Anwendungslogik für Freihelden.org.
 
+**No App, Ops only** - Dieses Repository fokussiert sich zunächst auf die Operations-Infrastruktur. Anwendungs-Code wird später hinzugefügt.
+
+**GitHub ist Single Source of Truth** - Alle Konfigurationen, Skripte und Dokumentation werden in diesem Repository verwaltet.
+
 ## Architekturprinzipien
 
 ### Isolation
