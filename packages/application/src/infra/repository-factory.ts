@@ -1,7 +1,9 @@
 import { LeadRepository } from "../ports/lead-repository";
 import { VorgangRepository } from "../ports/vorgang-repository";
+import { ProvisionClaimRepository } from "../ports/provision-claim-repository";
 import { inMemoryLeadRepository } from "../state/lead-store";
 import { inMemoryVorgangRepository } from "../state/vorgang-store";
+import { inMemoryProvisionClaimRepository } from "./in-memory-provision-claim-repository";
 import { fileLeadRepository } from "./file-lead-repository";
 import { fileVorgangRepository } from "./file-vorgang-repository";
 
@@ -12,17 +14,20 @@ export function createRepositories(
 ): {
   leadRepository: LeadRepository;
   vorgangRepository: VorgangRepository;
+  provisionClaimRepository: ProvisionClaimRepository;
 } {
   if (mode === "file") {
     return {
       leadRepository: fileLeadRepository,
-      vorgangRepository: fileVorgangRepository
+      vorgangRepository: fileVorgangRepository,
+      provisionClaimRepository: inMemoryProvisionClaimRepository
     };
   }
 
   return {
     leadRepository: inMemoryLeadRepository,
-    vorgangRepository: inMemoryVorgangRepository
+    vorgangRepository: inMemoryVorgangRepository,
+    provisionClaimRepository: inMemoryProvisionClaimRepository
   };
 }
 

@@ -1,3 +1,5 @@
+import { ProvisionClaimRepository } from "../../ports/provision-claim-repository";
+
 export type ProvisionSource =
   | "SHOP_PRODUCT"
   | "SHOP_SERVICE"
@@ -18,10 +20,15 @@ export type ProvisionClaimView = {
 };
 
 export function getOwnProvisionClaims(
-  salesPartnerId: string
+  salesPartnerId: string,
+  repo: ProvisionClaimRepository
 ): ProvisionClaimView[] {
-  // PROV-1: keine echte Datenquelle
-  // Rückgabe leer, bis PROV-2 Daten liefert
-  return [];
+  const claims = repo.findBySalesPartnerId(salesPartnerId);
+  return claims.map(c => ({
+    claimId: c.claimId,
+    source: c.source,
+    status: c.status,
+    holdUntil: c.holdUntil
+  }));
 }
 

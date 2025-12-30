@@ -68,7 +68,7 @@ export function startServer(persistenceMode: "memory" | "file" = "memory") {
     requireRole(["SALES_PARTNER", "ADMIN"] as HardSystemRole[]),
     (req, res) => {
       const salesPartnerId = req.authContext?.actorId || "";
-      res.json(getOwnProvisionClaims(salesPartnerId));
+      res.json(getOwnProvisionClaims(salesPartnerId, ctx.provisionClaimRepository));
     }
   );
 
@@ -77,7 +77,7 @@ export function startServer(persistenceMode: "memory" | "file" = "memory") {
     authGuard,
     requireRole(["COMMISSION_CONTROLLER", "ADMIN"] as HardSystemRole[]),
     (_req, res) => {
-      res.json(getAllProvisionClaims());
+      res.json(getAllProvisionClaims(ctx.provisionClaimRepository));
     }
   );
 
