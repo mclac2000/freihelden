@@ -2,8 +2,9 @@
 const DEV_ACTOR_ID = "test-user-1";
 const DEV_ACTOR_ROLE = "SALES_PARTNER";
 
-// API-Base-URL (Development)
-const API_BASE = "http://localhost:3000/api";
+// API-Base-URL aus Umgebungsvariable
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const API_BASE = `${API_BASE_URL}/api`;
 
 async function fetchJson<T>(path: string, method: string = "GET", body?: any): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
