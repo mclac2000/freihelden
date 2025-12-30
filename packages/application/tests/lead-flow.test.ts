@@ -2,10 +2,13 @@ import { describe, it, expect, beforeEach } from "vitest";
 import { createLead } from "../src/commands/lead/create-lead";
 import { assignLeadToSalesPartner } from "../src/commands/lead/assign-lead-to-sales-partner";
 import { getOwnLeadPipeline } from "../src/queries/sales-partner/get-own-lead-pipeline";
-import { inMemoryLeadRepository, resetLeadStore } from "../src/state/lead-store";
-import { inMemoryVorgangRepository, resetVorgangStore } from "../src/state/vorgang-store";
+import { createApplicationContext } from "../src/application-context";
+import { resetLeadStore } from "../src/state/lead-store";
+import { resetVorgangStore } from "../src/state/vorgang-store";
 
 describe("Lead flow (Create → Assign → Read)", () => {
+  const ctx = createApplicationContext("memory");
+
   beforeEach(() => {
     // Reset in-memory state
     resetLeadStore();
@@ -15,8 +18,7 @@ describe("Lead flow (Create → Assign → Read)", () => {
   it("creates a lead and shows it in the pipeline", () => {
     createLead(
       { leadId: "lead-1", source: "Website" },
-      inMemoryLeadRepository,
-      inMemoryVorgangRepository
+      ctx
     );
 
     const pipeline = getOwnLeadPipeline();
@@ -27,8 +29,7 @@ describe("Lead flow (Create → Assign → Read)", () => {
   it("assigns a lead to a sales partner", () => {
     createLead(
       { leadId: "lead-2", source: "Empfehlung" },
-      inMemoryLeadRepository,
-      inMemoryVorgangRepository
+      ctx
     );
 
     assignLeadToSalesPartner(
@@ -37,8 +38,7 @@ describe("Lead flow (Create → Assign → Read)", () => {
         salesPartnerId: "sp-1",
         assignedAt: "2025-01-20"
       },
-      inMemoryLeadRepository,
-      inMemoryVorgangRepository
+      ctx
     );
 
     const pipeline = getOwnLeadPipeline();

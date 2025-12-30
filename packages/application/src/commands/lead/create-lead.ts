@@ -1,7 +1,5 @@
-import { Lead, LeadRepository } from "../../ports/lead-repository";
-import { VorgangRepository } from "../../ports/vorgang-repository";
-import { inMemoryLeadRepository } from "../../state/lead-store";
-import { inMemoryVorgangRepository } from "../../state/vorgang-store";
+import { Lead } from "../../ports/lead-repository";
+import { ApplicationContext } from "../../application-context";
 
 type CreateLeadInput = {
   leadId: string;
@@ -10,8 +8,7 @@ type CreateLeadInput = {
 
 export function createLead(
   input: CreateLeadInput,
-  leadRepo: LeadRepository = inMemoryLeadRepository,
-  vorgangRepo: VorgangRepository = inMemoryVorgangRepository
+  ctx: ApplicationContext
 ): Lead {
   const lead: Lead = {
     leadId: input.leadId,
@@ -19,9 +16,9 @@ export function createLead(
     source: input.source
   };
 
-  leadRepo.add(lead);
+  ctx.leadRepository.add(lead);
 
-  vorgangRepo.record({
+  ctx.vorgangRepository.record({
     type: "LeadCreated",
     entity: "Lead",
     entityId: lead.leadId,

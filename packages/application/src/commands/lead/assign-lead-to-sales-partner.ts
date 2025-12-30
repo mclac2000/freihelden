@@ -1,7 +1,4 @@
-import { LeadRepository } from "../../ports/lead-repository";
-import { VorgangRepository } from "../../ports/vorgang-repository";
-import { inMemoryLeadRepository } from "../../state/lead-store";
-import { inMemoryVorgangRepository } from "../../state/vorgang-store";
+import { ApplicationContext } from "../../application-context";
 
 type AssignLeadInput = {
   leadId: string;
@@ -11,16 +8,15 @@ type AssignLeadInput = {
 
 export function assignLeadToSalesPartner(
   input: AssignLeadInput,
-  leadRepo: LeadRepository = inMemoryLeadRepository,
-  vorgangRepo: VorgangRepository = inMemoryVorgangRepository
+  ctx: ApplicationContext
 ): void {
-  leadRepo.assign(
+  ctx.leadRepository.assign(
     input.leadId,
     input.salesPartnerId,
     input.assignedAt
   );
 
-  vorgangRepo.record({
+  ctx.vorgangRepository.record({
     type: "LeadAssigned",
     entity: "Lead",
     entityId: input.leadId,
