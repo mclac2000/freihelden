@@ -27,7 +27,8 @@ export function deriveProvisionClaims(
 
   const claims: ProvisionClaim[] = drafts.map(d => ({
     ...d,
-    status: "ENTSTANDEN"
+    status: "ENTSTANDEN",
+    paymentStatus: d.source === "INVESTMENT" ? "NICHT_EINGEGANGEN" : "EINGEGANGEN"
   }));
 
   repo.saveMany(claims);

@@ -15,7 +15,10 @@ export type ProvisionClaimView = {
     | "ABGELEHNT"
     | "KORREKTUR_ERFORDERLICH"
     | "AUSZAHLUNG_AUSGELÖST";
-  holdUntil?: string;
+  paymentStatus: "NICHT_EINGEGANGEN" | "EINGEGANGEN";
+  holdUntil: string;
+  amountCents: number;
+  currency: string;
   note?: string;
 };
 
@@ -28,7 +31,11 @@ export function getOwnProvisionClaims(
     claimId: c.claimId,
     source: c.source,
     status: c.status,
-    holdUntil: c.holdUntil
+    paymentStatus: c.paymentStatus,
+    holdUntil: c.holdUntil,
+    amountCents: c.amountCents,
+    currency: c.currency,
+    note: c.note
   }));
 }
 

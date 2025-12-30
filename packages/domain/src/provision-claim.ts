@@ -1,4 +1,14 @@
-export type ProvisionClaimStatus = "ENTSTANDEN";
+export type ProvisionClaimStatus =
+  | "ENTSTANDEN"
+  | "IN_PRÜFUNG"
+  | "BESTÄTIGT"
+  | "ABGELEHNT"
+  | "KORREKTUR_ERFORDERLICH"
+  | "AUSZAHLUNG_AUSGELÖST";
+
+export type PaymentStatus =
+  | "NICHT_EINGEGANGEN"
+  | "EINGEGANGEN";
 
 export type ProvisionClaim = {
   claimId: string;
@@ -10,6 +20,10 @@ export type ProvisionClaim = {
   amountCents: number;
   currency: string;
   holdUntil: string;
+
   status: ProvisionClaimStatus;
+  paymentStatus: PaymentStatus;
+
+  note?: string;
 };
 

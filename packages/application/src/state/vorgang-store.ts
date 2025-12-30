@@ -47,3 +47,10 @@ export const inMemoryVorgangRepository: VorgangRepository = {
   }
 };
 
+// For commands that need append() method
+export const vorgangStore = {
+  append(vorgang: Vorgang): void {
+    inMemoryVorgangRepository.record(vorgang);
+  }
+};
+
