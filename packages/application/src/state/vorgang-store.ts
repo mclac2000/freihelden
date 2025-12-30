@@ -1,4 +1,5 @@
 import { VorgangRepository } from "../ports/vorgang-repository";
+import { HardSystemRole } from "../../../domain/src/roles";
 
 export type Vorgang =
   | {
@@ -9,6 +10,10 @@ export type Vorgang =
       payload: {
         source: string;
       };
+      triggeredBy?: {
+        role: HardSystemRole;
+        actorId: string;
+      };
     }
   | {
       type: "LeadAssigned";
@@ -18,6 +23,10 @@ export type Vorgang =
       payload: {
         salesPartnerId: string;
         assignedAt: string;
+      };
+      triggeredBy?: {
+        role: HardSystemRole;
+        actorId: string;
       };
     };
 
