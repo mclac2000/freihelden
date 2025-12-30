@@ -9,4 +9,3 @@ export const SYSTEM_ANONYMOUS_CONTEXT: AuthContext = {
   actorId: "anonymous",
   role: "ADMIN"
 };
-

@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from "express";
-import { AuthContext, SYSTEM_ANONYMOUS_CONTEXT } from "./auth-context";
+import { AuthContext } from "./auth-context";
+import { HARD_ROLES } from "../../../../packages/domain/src/roles";
 
 declare global {
   namespace Express {
@@ -11,11 +12,27 @@ declare global {
 
 export function authGuard(
   req: Request,
-  _res: Response,
+  res: Response,
   next: NextFunction
 ) {
-  // AUTH-0: kein echtes Auth, nur Kontext
-  req.authContext = SYSTEM_ANONYMOUS_CONTEXT;
+  const actorId = req.header("x-actor-id");
+  const role = req.header("x-actor-role");
+
+  if (!actorId || !role) {
+    res.status(401).json({ error: "Missing authentication headers" });
+    return;
+  }
+
+  if (!HARD_ROLES.includes(role as any)) {
+    res.status(403).json({ error: "Invalid actor role" });
+    return;
+  }
+
+  req.authContext = {
+    actorId,
+    role: role as any
+  };
+
   next();
 }
 
