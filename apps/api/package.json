@@ -1,0 +1,9 @@
+{
+  "name": "@freihelden/api",
+  "private": true,
+  "main": "dist/index.js",
+  "scripts": {
+    "start": "node dist/index.js"
+  }
+}
+
