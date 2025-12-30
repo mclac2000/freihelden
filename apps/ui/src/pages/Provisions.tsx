@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react";
-import { getAllProvisionClaims, approveProvisionClaim, ProvisionClaimView } from "../api";
+import { getAllProvisionClaims, approveProvisionClaim, triggerProvisionPayout, ProvisionClaimView } from "../api";
 import { DEV_AUTH } from "../auth";
 import { ProvisionAudit } from "../components/ProvisionAudit";
 
@@ -89,6 +89,19 @@ export function Provisions() {
 
     try {
       await approveProvisionClaim(claimId);
+      loadClaims();
+    } catch (err: any) {
+      alert(`Fehler: ${err.message}`);
+    }
+  };
+
+  const handlePayout = async (claimId: string) => {
+    if (!confirm("Auszahlung wirklich auslösen? Dies kann nicht rückgängig gemacht werden.")) {
+      return;
+    }
+
+    try {
+      await triggerProvisionPayout(claimId);
       loadClaims();
     } catch (err: any) {
       alert(`Fehler: ${err.message}`);
@@ -353,22 +366,42 @@ export function Provisions() {
                     </td>
                     {DEV_AUTH.role === "COMMISSION_CONTROLLER" && (
                       <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>
-                        {claim.status === "IN_PRÜFUNG" && claim.paymentStatus === "EINGEGANGEN" && (
-                          <button
-                            onClick={() => handleApprove(claim.claimId)}
-                            style={{
-                              padding: "0.5rem 1rem",
-                              background: "#28a745",
-                              color: "white",
-                              border: "none",
-                              borderRadius: "4px",
-                              cursor: "pointer",
-                              fontSize: "0.85rem"
-                            }}
-                          >
-                            Provision bestätigen
-                          </button>
-                        )}
+                        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                          {claim.status === "IN_PRÜFUNG" && claim.paymentStatus === "EINGEGANGEN" && (
+                            <button
+                              onClick={() => handleApprove(claim.claimId)}
+                              style={{
+                                padding: "0.5rem 1rem",
+                                background: "#28a745",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "4px",
+                                cursor: "pointer",
+                                fontSize: "0.85rem"
+                              }}
+                            >
+                              Provision bestätigen
+                            </button>
+                          )}
+                          {claim.status === "BESTÄTIGT" &&
+                            claim.paymentStatus === "EINGEGANGEN" &&
+                            new Date().getTime() >= new Date(claim.holdUntil).getTime() && (
+                              <button
+                                onClick={() => handlePayout(claim.claimId)}
+                                style={{
+                                  padding: "0.5rem 1rem",
+                                  background: "#17a2b8",
+                                  color: "white",
+                                  border: "none",
+                                  borderRadius: "4px",
+                                  cursor: "pointer",
+                                  fontSize: "0.85rem"
+                                }}
+                              >
+                                Auszahlung auslösen
+                              </button>
+                            )}
+                        </div>
                       </td>
                     )}
                   </tr>

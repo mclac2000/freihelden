@@ -56,6 +56,24 @@ export async function approveProvisionClaim(claimId: string): Promise<ProvisionC
   return response.json();
 }
 
+export async function triggerProvisionPayout(claimId: string): Promise<ProvisionClaimView> {
+  const response = await fetch(`${BASE_URL}/provisions/${claimId}/payout`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-actor-id": DEV_AUTH.actorId,
+      "x-actor-role": DEV_AUTH.role
+    }
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || `API error: ${response.status} ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
 export type Vorgang = {
   type: string;
   entity: string;

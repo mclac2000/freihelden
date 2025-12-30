@@ -6,7 +6,7 @@ import { getOwnLeadPipeline } from "../../../packages/application/src/queries/sa
 import { getOwnProvisionClaims } from "../../../packages/application/src/queries/provision/get-own-provision-claims";
 import { getAllProvisionClaims } from "../../../packages/application/src/queries/provision/get-all-provision-claims";
 import { getProvisionClaimAudit } from "../../../packages/application/src/queries/provision/get-provision-claim-audit";
-import { approveProvisionClaim } from "../../../packages/application/src/commands/provision/provision-commands";
+import { approveProvisionClaim, triggerCommissionPayout } from "../../../packages/application/src/commands/provision/provision-commands";
 import { authGuard } from "./auth/auth-guard";
 import { requireRole } from "./auth/require-role";
 import { READ_ROLES, WRITE_ROLES } from "./auth/access-rules";
@@ -111,6 +111,43 @@ export function startServer(persistenceMode: "memory" | "file" = "memory") {
       try {
         const nowIso = new Date().toISOString();
         approveProvisionClaim(
+          claimId,
+          nowIso,
+          { role: "COMMISSION_CONTROLLER", actorId },
+          ctx.provisionClaimRepository,
+          vorgangStore
+        );
+
+        const updated = ctx.provisionClaimRepository.findById(claimId);
+        if (!updated) {
+          res.status(404).json({ error: "Claim not found" });
+          return;
+        }
+
+        res.json(updated);
+      } catch (err: any) {
+        res.status(400).json({ error: err.message });
+      }
+    }
+  );
+
+  app.post(
+    "/api/provisions/:claimId/payout",
+    authGuard,
+    requireRole(["COMMISSION_CONTROLLER"] as HardSystemRole[]),
+    (req, res) => {
+      const claimId = req.params.claimId;
+      const actorId = req.authContext?.actorId;
+      const actorRole = req.authContext?.role;
+
+      if (!actorId || actorRole !== "COMMISSION_CONTROLLER") {
+        res.status(403).json({ error: "Insufficient permissions" });
+        return;
+      }
+
+      try {
+        const nowIso = new Date().toISOString();
+        triggerCommissionPayout(
           claimId,
           nowIso,
           { role: "COMMISSION_CONTROLLER", actorId },
