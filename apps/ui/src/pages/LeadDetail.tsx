@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getCommunicationForEntity, addCommunicationNote, CommunicationEvent, uploadFile, getFileAttachments, FileAttachment, askAI } from "../api";
+import { getCommunicationForEntity, addCommunicationNote, CommunicationEvent, uploadFile, getFileAttachments, FileAttachment, askAI, sendEmail } from "../api";
 
 interface LeadDetailProps {
   leadId?: string;
@@ -16,6 +16,11 @@ export function LeadDetail({ leadId = "test-lead-1" }: LeadDetailProps) {
   const [aiQuestion, setAiQuestion] = useState("");
   const [aiAnswer, setAiAnswer] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [emailTo, setEmailTo] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [emailSending, setEmailSending] = useState(false);
 
   const loadNotes = () => {
     setLoading(true);
@@ -91,6 +96,27 @@ export function LeadDetail({ leadId = "test-lead-1" }: LeadDetailProps) {
       alert(`Fehler: ${err.message}`);
     } finally {
       setAiLoading(false);
+    }
+  };
+
+  const handleSendEmail = async () => {
+    if (!emailTo.trim() || !emailSubject.trim() || !emailBody.trim()) {
+      alert("Bitte füllen Sie alle Felder aus.");
+      return;
+    }
+
+    setEmailSending(true);
+    try {
+      await sendEmail("LEAD", leadId, emailTo.trim(), emailSubject.trim(), emailBody.trim());
+      setEmailTo("");
+      setEmailSubject("");
+      setEmailBody("");
+      setShowEmailForm(false);
+      loadNotes(); // Reload to show the new email communication
+    } catch (err: any) {
+      alert(`Fehler beim Senden: ${err.message}`);
+    } finally {
+      setEmailSending(false);
     }
   };
 
@@ -184,6 +210,107 @@ export function LeadDetail({ leadId = "test-lead-1" }: LeadDetailProps) {
           }}>
             <div style={{ fontSize: "0.85rem", color: "#666", marginBottom: "0.5rem" }}>KI-Antwort:</div>
             <div>{aiAnswer}</div>
+          </div>
+        )}
+      </div>
+
+      <div style={{ marginBottom: "2rem" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+          <h2 style={{ margin: 0 }}>Kommunikation</h2>
+          <button
+            onClick={() => setShowEmailForm(!showEmailForm)}
+            style={{
+              padding: "0.5rem 1rem",
+              background: showEmailForm ? "#6c757d" : "#28a745",
+              color: "white",
+              border: "none",
+              borderRadius: "4px",
+              cursor: "pointer",
+              fontSize: "0.9rem"
+            }}
+          >
+            {showEmailForm ? "Abbrechen" : "E-Mail schreiben"}
+          </button>
+        </div>
+
+        {showEmailForm && (
+          <div style={{
+            padding: "1rem",
+            background: "#f9f9f9",
+            borderRadius: "4px",
+            border: "1px solid #ddd",
+            marginBottom: "1rem"
+          }}>
+            <h3 style={{ marginTop: 0, marginBottom: "1rem" }}>E-Mail senden</h3>
+            <div style={{ marginBottom: "0.75rem" }}>
+              <label style={{ display: "block", marginBottom: "0.25rem", fontSize: "0.9rem", fontWeight: "bold" }}>
+                Empfänger:
+              </label>
+              <input
+                type="email"
+                value={emailTo}
+                onChange={(e) => setEmailTo(e.target.value)}
+                placeholder="email@example.com"
+                style={{
+                  width: "100%",
+                  padding: "0.5rem",
+                  border: "1px solid #ddd",
+                  borderRadius: "4px",
+                  fontSize: "0.9rem"
+                }}
+              />
+            </div>
+            <div style={{ marginBottom: "0.75rem" }}>
+              <label style={{ display: "block", marginBottom: "0.25rem", fontSize: "0.9rem", fontWeight: "bold" }}>
+                Betreff:
+              </label>
+              <input
+                type="text"
+                value={emailSubject}
+                onChange={(e) => setEmailSubject(e.target.value)}
+                placeholder="Betreff der E-Mail"
+                style={{
+                  width: "100%",
+                  padding: "0.5rem",
+                  border: "1px solid #ddd",
+                  borderRadius: "4px",
+                  fontSize: "0.9rem"
+                }}
+              />
+            </div>
+            <div style={{ marginBottom: "0.75rem" }}>
+              <label style={{ display: "block", marginBottom: "0.25rem", fontSize: "0.9rem", fontWeight: "bold" }}>
+                Nachricht:
+              </label>
+              <textarea
+                value={emailBody}
+                onChange={(e) => setEmailBody(e.target.value)}
+                placeholder="E-Mail-Text"
+                style={{
+                  width: "100%",
+                  minHeight: "150px",
+                  padding: "0.5rem",
+                  border: "1px solid #ddd",
+                  borderRadius: "4px",
+                  fontSize: "0.9rem"
+                }}
+              />
+            </div>
+            <button
+              onClick={handleSendEmail}
+              disabled={!emailTo.trim() || !emailSubject.trim() || !emailBody.trim() || emailSending}
+              style={{
+                padding: "0.5rem 1rem",
+                background: emailSending ? "#ccc" : "#007bff",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: emailSending ? "not-allowed" : "pointer",
+                fontSize: "0.9rem"
+              }}
+            >
+              {emailSending ? "Wird gesendet..." : "Senden"}
+            </button>
           </div>
         )}
       </div>

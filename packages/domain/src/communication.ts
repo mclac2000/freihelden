@@ -2,6 +2,7 @@ export type CommunicationType =
   | "NOTE"
   | "CALL_SUMMARY"
   | "EMAIL_REFERENCE"
+  | "EMAIL_SENT"
   | "MEETING_REFERENCE";
 
 export interface CommunicationEvent {

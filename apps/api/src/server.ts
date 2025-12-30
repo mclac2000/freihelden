@@ -14,6 +14,8 @@ import { fileAttachmentStore } from "../../../packages/application/src/state/fil
 import { askAIAboutEntity } from "../../../packages/application/src/queries/ai/ask-ai-about-entity";
 import { OpenAIClient } from "../../../packages/infra/src/ai/openai-client";
 import { search } from "../../../packages/application/src/search/search-index";
+import { sendEmail } from "../../../packages/application/src/commands/communication/send-email";
+import { SmtpMailClient } from "../../../packages/infra/src/mail/smtp-mail-client";
 import { authGuard } from "./auth/auth-guard";
 import { requireRole } from "./auth/require-role";
 import { READ_ROLES, WRITE_ROLES } from "./auth/access-rules";
@@ -348,6 +350,37 @@ export function startServer(persistenceMode: "memory" | "file" = "memory") {
       }
       const results = search(query);
       res.json(results);
+    }
+  );
+
+  // --- mail routes ---
+  app.post(
+    "/api/mail/send",
+    authGuard,
+    requireRole(WRITE_ROLES),
+    requireFields(["entityType", "entityId", "to", "subject", "body"]),
+    async (req, res) => {
+      const entityType = req.body.entityType as "LEAD" | "CUSTOMER";
+      const entityId = req.body.entityId as string;
+      const to = req.body.to as string;
+      const subject = req.body.subject as string;
+      const body = req.body.body as string;
+
+      const actorId = req.authContext?.actorId || "";
+      const actorRole = req.authContext?.role || "";
+
+      const mailClient = new SmtpMailClient();
+      await sendEmail(
+        mailClient,
+        entityType,
+        entityId,
+        to,
+        subject,
+        body,
+        { actorId, role: actorRole }
+      );
+
+      res.json({ status: "ok" });
     }
   );
 

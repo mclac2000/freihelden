@@ -214,3 +214,26 @@ export async function search(query: string): Promise<SearchResult[]> {
   return fetchJson<SearchResult[]>(`/search?q=${encodeURIComponent(query)}`);
 }
 
+export async function sendEmail(
+  entityType: "LEAD" | "CUSTOMER",
+  entityId: string,
+  to: string,
+  subject: string,
+  body: string
+): Promise<void> {
+  const response = await fetch(`${BASE_URL}/mail/send`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-actor-id": DEV_AUTH.actorId,
+      "x-actor-role": DEV_AUTH.role
+    },
+    body: JSON.stringify({ entityType, entityId, to, subject, body })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || `API error: ${response.status} ${response.statusText}`);
+  }
+}
+
