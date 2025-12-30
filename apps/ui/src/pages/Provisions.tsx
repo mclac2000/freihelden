@@ -1,10 +1,70 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { getAllProvisionClaims, ProvisionClaimView } from "../api";
+
+// Hilfsfunktionen (UI-only, keine Seiteneffekte)
+function isReadyForPayout(claim: ProvisionClaimView): boolean {
+  const now = new Date().getTime();
+  const holdUntil = new Date(claim.holdUntil).getTime();
+  return (
+    claim.status === "BESTÄTIGT" &&
+    claim.paymentStatus === "EINGEGANGEN" &&
+    now >= holdUntil
+  );
+}
+
+function getBlockReason(claim: ProvisionClaimView): string {
+  const now = new Date().getTime();
+  const holdUntil = new Date(claim.holdUntil).getTime();
+
+  if (claim.paymentStatus !== "EINGEGANGEN") {
+    return "Wartet auf Zahlungseingang";
+  } else if (now < holdUntil) {
+    const date = new Date(claim.holdUntil).toLocaleDateString("de-DE");
+    return `In Haltefrist bis ${date}`;
+  } else if (claim.status !== "BESTÄTIGT") {
+    return "Noch nicht freigegeben";
+  } else {
+    return "Bereit zur Auszahlung";
+  }
+}
+
+function getStatusColor(status: ProvisionClaimView["status"]): string {
+  switch (status) {
+    case "ENTSTANDEN":
+      return "#6c757d";
+    case "IN_PRÜFUNG":
+      return "#ffc107";
+    case "BESTÄTIGT":
+      return "#28a745";
+    case "ABGELEHNT":
+      return "#dc3545";
+    case "KORREKTUR_ERFORDERLICH":
+      return "#fd7e14";
+    case "AUSZAHLUNG_AUSGELÖST":
+      return "#17a2b8";
+    default:
+      return "#6c757d";
+  }
+}
+
+function getPaymentStatusColor(paymentStatus: ProvisionClaimView["paymentStatus"]): string {
+  return paymentStatus === "EINGEGANGEN" ? "#28a745" : "#ffc107";
+}
 
 export function Provisions() {
   const [claims, setClaims] = useState<ProvisionClaimView[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Filter State
+  const [filterStatus, setFilterStatus] = useState<string>("");
+  const [filterSource, setFilterSource] = useState<string>("");
+  const [filterPaymentStatus, setFilterPaymentStatus] = useState<string>("");
+  const [filterReadyForPayout, setFilterReadyForPayout] = useState<boolean | null>(null);
+
+  // Sortierung State
+  const [sortBy, setSortBy] = useState<"amountCents" | "holdUntil">("holdUntil");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   useEffect(() => {
     getAllProvisionClaims()
@@ -12,6 +72,47 @@ export function Provisions() {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, []);
+
+  // Client-seitige Filterung und Sortierung
+  const filteredAndSortedClaims = useMemo(() => {
+    let filtered = [...claims];
+
+    // Filter anwenden
+    if (filterStatus) {
+      filtered = filtered.filter((c) => c.status === filterStatus);
+    }
+    if (filterSource) {
+      filtered = filtered.filter((c) => c.source === filterSource);
+    }
+    if (filterPaymentStatus) {
+      filtered = filtered.filter((c) => c.paymentStatus === filterPaymentStatus);
+    }
+    if (filterReadyForPayout !== null) {
+      filtered = filtered.filter((c) => isReadyForPayout(c) === filterReadyForPayout);
+    }
+
+    // Sortierung anwenden
+    filtered.sort((a, b) => {
+      let aVal: number;
+      let bVal: number;
+
+      if (sortBy === "amountCents") {
+        aVal = a.amountCents;
+        bVal = b.amountCents;
+      } else {
+        aVal = new Date(a.holdUntil).getTime();
+        bVal = new Date(b.holdUntil).getTime();
+      }
+
+      if (sortDirection === "asc") {
+        return aVal - bVal;
+      } else {
+        return bVal - aVal;
+      }
+    });
+
+    return filtered;
+  }, [claims, filterStatus, filterSource, filterPaymentStatus, filterReadyForPayout, sortBy, sortDirection]);
 
   if (loading) {
     return <div>Lade Daten...</div>;
@@ -21,15 +122,126 @@ export function Provisions() {
     return <div style={{ color: "red" }}>Fehler: {error}</div>;
   }
 
+  const uniqueStatuses = Array.from(new Set(claims.map((c) => c.status)));
+  const uniqueSources = Array.from(new Set(claims.map((c) => c.source)));
+
   return (
     <div>
       <h1>Provision Claims</h1>
-      
-      {claims.length === 0 ? (
+
+      {/* Filter */}
+      <div style={{
+        display: "grid",
+        gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
+        gap: "1rem",
+        marginBottom: "1rem",
+        padding: "1rem",
+        background: "#f9f9f9",
+        borderRadius: "4px"
+      }}>
+        <div>
+          <label style={{ display: "block", marginBottom: "0.25rem", fontSize: "0.9rem" }}>
+            Status:
+          </label>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            style={{ width: "100%", padding: "0.5rem" }}
+          >
+            <option value="">Alle</option>
+            {uniqueStatuses.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label style={{ display: "block", marginBottom: "0.25rem", fontSize: "0.9rem" }}>
+            Source:
+          </label>
+          <select
+            value={filterSource}
+            onChange={(e) => setFilterSource(e.target.value)}
+            style={{ width: "100%", padding: "0.5rem" }}
+          >
+            <option value="">Alle</option>
+            {uniqueSources.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label style={{ display: "block", marginBottom: "0.25rem", fontSize: "0.9rem" }}>
+            Payment Status:
+          </label>
+          <select
+            value={filterPaymentStatus}
+            onChange={(e) => setFilterPaymentStatus(e.target.value)}
+            style={{ width: "100%", padding: "0.5rem" }}
+          >
+            <option value="">Alle</option>
+            <option value="EINGEGANGEN">EINGEGANGEN</option>
+            <option value="NICHT_EINGEGANGEN">NICHT_EINGEGANGEN</option>
+          </select>
+        </div>
+
+        <div>
+          <label style={{ display: "block", marginBottom: "0.25rem", fontSize: "0.9rem" }}>
+            Ready for Payout:
+          </label>
+          <select
+            value={filterReadyForPayout === null ? "" : filterReadyForPayout ? "true" : "false"}
+            onChange={(e) => {
+              if (e.target.value === "") setFilterReadyForPayout(null);
+              else setFilterReadyForPayout(e.target.value === "true");
+            }}
+            style={{ width: "100%", padding: "0.5rem" }}
+          >
+            <option value="">Alle</option>
+            <option value="true">Ja</option>
+            <option value="false">Nein</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Sortierung */}
+      <div style={{
+        display: "flex",
+        gap: "1rem",
+        marginBottom: "1rem",
+        alignItems: "center"
+      }}>
+        <label style={{ fontSize: "0.9rem" }}>Sortieren nach:</label>
+        <select
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as "amountCents" | "holdUntil")}
+          style={{ padding: "0.5rem" }}
+        >
+          <option value="holdUntil">Hold Until</option>
+          <option value="amountCents">Amount</option>
+        </select>
+        <button
+          onClick={() => setSortDirection(sortDirection === "asc" ? "desc" : "asc")}
+          style={{ padding: "0.5rem 1rem", cursor: "pointer" }}
+        >
+          {sortDirection === "asc" ? "↑ Aufsteigend" : "↓ Absteigend"}
+        </button>
+      </div>
+
+      <div style={{ marginBottom: "1rem", fontSize: "0.9rem", color: "#666" }}>
+        {filteredAndSortedClaims.length} von {claims.length} Claims
+      </div>
+
+      {filteredAndSortedClaims.length === 0 ? (
         <div>Keine Claims vorhanden.</div>
       ) : (
-        <table style={{ 
-          width: "100%", 
+        <table style={{
+          width: "100%",
           borderCollapse: "collapse",
           border: "1px solid #ddd",
           fontSize: "0.9rem"
@@ -47,26 +259,61 @@ export function Provisions() {
             </tr>
           </thead>
           <tbody>
-            {claims.map((claim) => (
-              <tr key={claim.claimId}>
-                <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>{claim.claimId}</td>
-                <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>{claim.source}</td>
-                <td style={{ padding: "0.5rem", textAlign: "right", border: "1px solid #ddd" }}>
-                  {(claim.amountCents / 100).toFixed(2)}
-                </td>
-                <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>{claim.currency}</td>
-                <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>{claim.status}</td>
-                <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>{claim.paymentStatus}</td>
-                <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>
-                  {new Date(claim.holdUntil).toLocaleDateString("de-DE")}
-                </td>
-                <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>{claim.note || "-"}</td>
-              </tr>
-            ))}
+            {filteredAndSortedClaims.map((claim) => {
+              const blockReason = getBlockReason(claim);
+              return (
+                <tr key={claim.claimId}>
+                  <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>{claim.claimId}</td>
+                  <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>{claim.source}</td>
+                  <td style={{ padding: "0.5rem", textAlign: "right", border: "1px solid #ddd" }}>
+                    {(claim.amountCents / 100).toFixed(2)}
+                  </td>
+                  <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>{claim.currency}</td>
+                  <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>
+                    <div>
+                      <span
+                        style={{
+                          display: "inline-block",
+                          padding: "0.25rem 0.5rem",
+                          borderRadius: "4px",
+                          background: getStatusColor(claim.status),
+                          color: "white",
+                          fontSize: "0.85rem",
+                          fontWeight: "bold"
+                        }}
+                      >
+                        {claim.status}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "#666", marginTop: "0.25rem" }}>
+                      {blockReason}
+                    </div>
+                  </td>
+                  <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        padding: "0.25rem 0.5rem",
+                        borderRadius: "4px",
+                        background: getPaymentStatusColor(claim.paymentStatus),
+                        color: "white",
+                        fontSize: "0.85rem",
+                        fontWeight: "bold"
+                      }}
+                    >
+                      {claim.paymentStatus}
+                    </span>
+                  </td>
+                  <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>
+                    {new Date(claim.holdUntil).toLocaleDateString("de-DE")}
+                  </td>
+                  <td style={{ padding: "0.5rem", border: "1px solid #ddd" }}>{claim.note || "-"}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}
     </div>
   );
 }
-
